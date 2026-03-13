@@ -1,12 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { api } from '../../services/api';
 import { setDirection, setSpeed } from '../../redux/slices/statusSlice';
 
-const Joystick = () => {
+const Joystick = ({ speed = 50 }) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [speed, setSpeed] = useState(50);
   const joystickRef = useRef(null);
   const dispatch = useDispatch();
   const { ip, port, isConnected } = useSelector(state => state.connection);
@@ -18,12 +17,15 @@ const Joystick = () => {
     const normalizedDistance = Math.min(distance / maxDistance, 1);
     const currentSpeed = Math.round(normalizedDistance * speed);
 
+    const deviceIp = ip || '10.42.0.1';
+    const devicePort = port || 5000;
+
     if (distance < 10) {
       // 停止
       dispatch(setDirection('stop'));
       dispatch(setSpeed(0));
       if (isConnected) {
-        api.stop(ip, port).catch(err => console.error('Error stopping:', err));
+        api.stop(deviceIp, devicePort).catch(err => console.error('Error stopping:', err));
       }
       return;
     }
@@ -48,7 +50,7 @@ const Joystick = () => {
 
     // 发送控制指令
     if (isConnected) {
-      api.move(ip, port, direction, currentSpeed).catch(err => console.error('Error moving:', err));
+      api.move(deviceIp, devicePort, direction, currentSpeed).catch(err => console.error('Error moving:', err));
     }
   };
 
@@ -112,11 +114,6 @@ const Joystick = () => {
     }
   };
 
-  // 处理速度变化
-  const handleSpeedChange = (e) => {
-    setSpeed(parseInt(e.target.value));
-  };
-
   // 急停按钮
   const handleEmergencyStop = () => {
     setIsDragging(false);
@@ -124,7 +121,9 @@ const Joystick = () => {
     dispatch(setDirection('stop'));
     dispatch(setSpeed(0));
     if (isConnected) {
-      api.stop(ip, port).catch(err => console.error('Error stopping:', err));
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 5000;
+      api.stop(deviceIp, devicePort).catch(err => console.error('Error stopping:', err));
     }
   };
 
@@ -159,14 +158,6 @@ const Joystick = () => {
             急停
           </button>
         </div>
-        <input 
-          type="range" 
-          min="10" 
-          max="100" 
-          value={speed} 
-          onChange={handleSpeedChange}
-          className="w-full"
-        />
       </div>
     </div>
   );

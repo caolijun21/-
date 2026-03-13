@@ -9,8 +9,8 @@ const Settings = () => {
   const dispatch = useDispatch();
   const { ip, port, isConnected } = useSelector(state => state.connection);
   const { email, network } = useSelector(state => state.settings);
-  const [localIp, setLocalIp] = useState(ip);
-  const [localPort, setLocalPort] = useState(port);
+  const [localIp, setLocalIp] = useState(ip || '10.42.0.1');
+  const [localPort, setLocalPort] = useState(port || 5000);
   const [localEmail, setLocalEmail] = useState(email);
   const [localNetwork, setLocalNetwork] = useState(network);
   const [wifiNetworks, setWifiNetworks] = useState([]);
@@ -29,7 +29,9 @@ const Settings = () => {
     if (!isConnected) return;
     
     try {
-      await api.saveEmailSettings(ip, port, localEmail);
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 5000;
+      await api.saveEmailSettings(deviceIp, devicePort, localEmail);
       dispatch(setEmailSettings(localEmail));
       alert('邮箱设置保存成功');
     } catch (error) {
@@ -44,7 +46,9 @@ const Settings = () => {
     
     setIsScanning(true);
     try {
-      const networks = await api.scanWiFi(ip, port);
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 5000;
+      const networks = await api.scanWiFi(deviceIp, devicePort);
       setWifiNetworks(networks);
     } catch (error) {
       console.error('扫描WiFi失败:', error);
@@ -62,7 +66,9 @@ const Settings = () => {
     if (!password) return;
     
     try {
-      await api.connectWiFi(ip, port, ssid, password);
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 5000;
+      await api.connectWiFi(deviceIp, devicePort, ssid, password);
       setLocalNetwork({ ...localNetwork, ssid, mode: 'client' });
       dispatch(setNetworkSettings({ ssid, mode: 'client' }));
       alert('WiFi连接成功');
@@ -77,7 +83,9 @@ const Settings = () => {
     if (!isConnected) return;
     
     try {
-      await api.startHotspot(ip, port);
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 5000;
+      await api.startHotspot(deviceIp, devicePort);
       setLocalNetwork({ ...localNetwork, mode: 'hotspot' });
       dispatch(setNetworkSettings({ mode: 'hotspot' }));
       alert('热点启动成功');
@@ -92,7 +100,9 @@ const Settings = () => {
     if (!isConnected) return;
     
     try {
-      await api.resetOdometry(ip, port);
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 5000;
+      await api.resetOdometry(deviceIp, devicePort);
       dispatch(setOdometry(0));
       alert('里程重置成功');
     } catch (error) {
@@ -106,7 +116,9 @@ const Settings = () => {
     if (!isConnected) return;
     
     try {
-      await api.takeSnapshot(ip, port);
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 5000;
+      await api.takeSnapshot(deviceIp, devicePort);
       alert('拍照成功');
     } catch (error) {
       console.error('拍照失败:', error);

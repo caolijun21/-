@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  ip: '192.168.1.1',
+  ip: '10.42.0.1',
   port: 5000,
   isConnected: false,
   isScanning: false,

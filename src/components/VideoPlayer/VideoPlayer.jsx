@@ -9,7 +9,9 @@ const VideoPlayer = () => {
   const { ip, port, isConnected } = useSelector(state => state.connection);
 
   // 获取视频流URL
-  const videoUrl = isConnected ? api.getVideoStreamUrl(ip, port) : '';
+  const deviceIp = ip || '10.42.0.1';
+  const devicePort = port || 5000;
+  const videoUrl = isConnected ? api.getVideoStreamUrl(deviceIp, devicePort) : '';
 
   // 处理全屏切换
   const toggleFullscreen = () => {

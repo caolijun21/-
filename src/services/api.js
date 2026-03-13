@@ -59,6 +59,15 @@ export const api = {
     });
   },
   
+  // 云台控制
+  moveCamera: async (ip, port, direction, speed) => {
+    const url = `${getBaseUrl(ip, port)}/api/control/camera`;
+    return request(url, {
+      method: 'POST',
+      body: JSON.stringify({ direction, speed }),
+    });
+  },
+  
   stop: async (ip, port) => {
     const url = `${getBaseUrl(ip, port)}/api/control/stop`;
     return request(url, {
@@ -69,6 +78,115 @@ export const api = {
   // 里程重置
   resetOdometry: async (ip, port) => {
     const url = `${getBaseUrl(ip, port)}/api/odometry/reset`;
+    return request(url, {
+      method: 'POST',
+    });
+  },
+  
+  // 避障跟踪
+  startObstacleAvoidance: async (ip, port, mode) => {
+    const url = `${getBaseUrl(ip, port)}/api/obstacle/start`;
+    return request(url, {
+      method: 'POST',
+      body: JSON.stringify({ mode }), // mode: 'ultrasonic' or 'ultrasonic_ir'
+    });
+  },
+  
+  stopObstacleAvoidance: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/obstacle/stop`;
+    return request(url, {
+      method: 'POST',
+    });
+  },
+  
+  // 巡线模式
+  startLineFollowing: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/line_following/start`;
+    return request(url, {
+      method: 'POST',
+    });
+  },
+  
+  stopLineFollowing: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/line_following/stop`;
+    return request(url, {
+      method: 'POST',
+    });
+  },
+  
+  // 画地为牢
+  startAreaLimit: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/area_limit/start`;
+    return request(url, {
+      method: 'POST',
+    });
+  },
+  
+  stopAreaLimit: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/area_limit/stop`;
+    return request(url, {
+      method: 'POST',
+    });
+  },
+  
+  // 目标检测
+  startObjectDetection: async (ip, port, type) => {
+    const url = `${getBaseUrl(ip, port)}/api/detection/start`;
+    return request(url, {
+      method: 'POST',
+      body: JSON.stringify({ type }), // type: 'face', 'color', 'motion'
+    });
+  },
+  
+  stopObjectDetection: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/detection/stop`;
+    return request(url, {
+      method: 'POST',
+    });
+  },
+  
+  // 目标追踪
+  startObjectTracking: async (ip, port, type, color) => {
+    const url = `${getBaseUrl(ip, port)}/api/tracking/start`;
+    return request(url, {
+      method: 'POST',
+      body: JSON.stringify({ type, color }), // type: 'face', 'color'
+    });
+  },
+  
+  stopObjectTracking: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/tracking/stop`;
+    return request(url, {
+      method: 'POST',
+    });
+  },
+  
+  // 目标识别
+  startObjectRecognition: async (ip, port, type) => {
+    const url = `${getBaseUrl(ip, port)}/api/recognition/start`;
+    return request(url, {
+      method: 'POST',
+      body: JSON.stringify({ type }), // type: 'qr', 'object', 'gesture'
+    });
+  },
+  
+  stopObjectRecognition: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/recognition/stop`;
+    return request(url, {
+      method: 'POST',
+    });
+  },
+  
+  // 自动驾驶
+  startAutoDriving: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/autodrive/start`;
+    return request(url, {
+      method: 'POST',
+    });
+  },
+  
+  stopAutoDriving: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/autodrive/stop`;
     return request(url, {
       method: 'POST',
     });
