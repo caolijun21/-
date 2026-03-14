@@ -16,11 +16,6 @@ const Home = () => {
   // 状态管理
   const [obstacleMode, setObstacleMode] = useState(null);
   const [lineFollowing, setLineFollowing] = useState(false);
-  const [areaLimit, setAreaLimit] = useState(false);
-  const [detectionType, setDetectionType] = useState(null);
-  const [trackingType, setTrackingType] = useState(null);
-  const [recognitionType, setRecognitionType] = useState(null);
-  const [autoDriving, setAutoDriving] = useState(false);
   const [speed, setSpeed] = useState(75);
 
   // WebSocket管理器实例
@@ -73,29 +68,6 @@ const Home = () => {
     }
   };
 
-  // 开始任务
-  const handleStartTask = () => {
-    if (!isConnected) return;
-    
-    const operatorName = prompt('请输入操作员姓名:');
-    if (!operatorName) return;
-    
-    if (mqttManager) {
-      mqttManager.sendCommand('start_task', { operator: operatorName });
-      dispatch(startTask({ operator: operatorName }));
-    }
-  };
-
-  // 结束任务
-  const handleEndTask = () => {
-    if (!isConnected || !isTaskRunning) return;
-    
-    if (mqttManager) {
-      mqttManager.sendCommand('end_task');
-      dispatch(endTask({}));
-    }
-  };
-
   // 避障跟踪控制
   const handleObstacleAvoidance = (mode) => {
     if (!isConnected) return;
@@ -124,81 +96,6 @@ const Home = () => {
       } else {
         mqttManager.sendCommand('start_line_following');
         setLineFollowing(true);
-      }
-    }
-  };
-
-  // 画地为牢控制
-  const handleAreaLimit = () => {
-    if (!isConnected) return;
-    
-    if (mqttManager) {
-      if (areaLimit) {
-        mqttManager.sendCommand('stop_area_limit');
-        setAreaLimit(false);
-      } else {
-        mqttManager.sendCommand('start_area_limit');
-        setAreaLimit(true);
-      }
-    }
-  };
-
-  // 目标检测控制
-  const handleObjectDetection = (type) => {
-    if (!isConnected) return;
-    
-    if (mqttManager) {
-      if (detectionType === type) {
-        mqttManager.sendCommand('stop_object_detection');
-        setDetectionType(null);
-      } else {
-        mqttManager.sendCommand('start_object_detection', { type });
-        setDetectionType(type);
-      }
-    }
-  };
-
-  // 目标追踪控制
-  const handleObjectTracking = (type) => {
-    if (!isConnected) return;
-    
-    if (mqttManager) {
-      if (trackingType === type) {
-        mqttManager.sendCommand('stop_object_tracking');
-        setTrackingType(null);
-      } else {
-        mqttManager.sendCommand('start_object_tracking', { type });
-        setTrackingType(type);
-      }
-    }
-  };
-
-  // 目标识别控制
-  const handleObjectRecognition = (type) => {
-    if (!isConnected) return;
-    
-    if (mqttManager) {
-      if (recognitionType === type) {
-        mqttManager.sendCommand('stop_object_recognition');
-        setRecognitionType(null);
-      } else {
-        mqttManager.sendCommand('start_object_recognition', { type });
-        setRecognitionType(type);
-      }
-    }
-  };
-
-  // 自动驾驶控制
-  const handleAutoDriving = () => {
-    if (!isConnected) return;
-    
-    if (mqttManager) {
-      if (autoDriving) {
-        mqttManager.sendCommand('stop_auto_driving');
-        setAutoDriving(false);
-      } else {
-        mqttManager.sendCommand('start_auto_driving');
-        setAutoDriving(true);
       }
     }
   };
@@ -237,32 +134,6 @@ const Home = () => {
         </div>
       </div>
       
-      {/* 任务控制（开始/结束巡检） */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">任务管理</h2>
-        <div className="flex gap-4">
-          <button 
-            className="btn btn-primary flex-1"
-            onClick={handleStartTask}
-            disabled={isTaskRunning}
-          >
-            开始任务
-          </button>
-          <button 
-            className="btn btn-danger flex-1"
-            onClick={handleEndTask}
-            disabled={!isTaskRunning}
-          >
-            结束任务
-          </button>
-        </div>
-        {isTaskRunning && (
-          <div className="mt-2 text-sm">
-            任务进行中 - 操作员: {operator}
-          </div>
-        )}
-      </div>
-      
       {/* 避障跟踪 */}
       <div className="card mb-4">
         <h2 className="font-bold text-lg mb-2">避障跟踪</h2>
@@ -295,103 +166,7 @@ const Home = () => {
           >
             {lineFollowing ? '停止巡线' : '开始巡线'}
           </button>
-          <button 
-            className={`btn flex-1 ${areaLimit ? 'btn-success' : 'btn-primary'}`}
-            onClick={handleAreaLimit}
-            disabled={!isConnected}
-          >
-            {areaLimit ? '停止画地为牢' : '画地为牢'}
-          </button>
         </div>
-      </div>
-      
-      {/* 目标检测 */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">目标检测</h2>
-        <div className="grid grid-cols-3 gap-2">
-          <button 
-            className={`btn ${detectionType === 'face' ? 'btn-success' : 'btn-primary'}`}
-            onClick={() => handleObjectDetection('face')}
-            disabled={!isConnected}
-          >
-            {detectionType === 'face' ? '停止人脸检测' : '人脸检测'}
-          </button>
-          <button 
-            className={`btn ${detectionType === 'color' ? 'btn-success' : 'btn-primary'}`}
-            onClick={() => handleObjectDetection('color')}
-            disabled={!isConnected}
-          >
-            {detectionType === 'color' ? '停止颜色检测' : '颜色检测'}
-          </button>
-          <button 
-            className={`btn ${detectionType === 'motion' ? 'btn-success' : 'btn-primary'}`}
-            onClick={() => handleObjectDetection('motion')}
-            disabled={!isConnected}
-          >
-            {detectionType === 'motion' ? '停止移动检测' : '移动检测'}
-          </button>
-        </div>
-      </div>
-      
-      {/* 目标追踪 */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">目标追踪</h2>
-        <div className="grid grid-cols-2 gap-2">
-          <button 
-            className={`btn ${trackingType === 'face' ? 'btn-success' : 'btn-primary'}`}
-            onClick={() => handleObjectTracking('face')}
-            disabled={!isConnected}
-          >
-            {trackingType === 'face' ? '停止人脸追踪' : '人脸追踪'}
-          </button>
-          <button 
-            className={`btn ${trackingType === 'color' ? 'btn-success' : 'btn-primary'}`}
-            onClick={() => handleObjectTracking('color')}
-            disabled={!isConnected}
-          >
-            {trackingType === 'color' ? '停止颜色追踪' : '颜色追踪'}
-          </button>
-        </div>
-      </div>
-      
-      {/* 目标识别 */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">目标识别</h2>
-        <div className="grid grid-cols-3 gap-2">
-          <button 
-            className={`btn ${recognitionType === 'qr' ? 'btn-success' : 'btn-primary'}`}
-            onClick={() => handleObjectRecognition('qr')}
-            disabled={!isConnected}
-          >
-            {recognitionType === 'qr' ? '停止二维码识别' : '二维码识别'}
-          </button>
-          <button 
-            className={`btn ${recognitionType === 'object' ? 'btn-success' : 'btn-primary'}`}
-            onClick={() => handleObjectRecognition('object')}
-            disabled={!isConnected}
-          >
-            {recognitionType === 'object' ? '停止物体识别' : '物体识别'}
-          </button>
-          <button 
-            className={`btn ${recognitionType === 'gesture' ? 'btn-success' : 'btn-primary'}`}
-            onClick={() => handleObjectRecognition('gesture')}
-            disabled={!isConnected}
-          >
-            {recognitionType === 'gesture' ? '停止手势识别' : '手势识别'}
-          </button>
-        </div>
-      </div>
-      
-      {/* 自动驾驶 */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">自动驾驶</h2>
-        <button 
-          className={`btn btn-block ${autoDriving ? 'btn-success' : 'btn-primary'}`}
-          onClick={handleAutoDriving}
-          disabled={!isConnected}
-        >
-          {autoDriving ? '停止自动驾驶' : '开始自动驾驶'}
-        </button>
       </div>
     </div>
   );
