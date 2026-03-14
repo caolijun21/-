@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { api } from '../../services/api';
 import { setDirection, setSpeed } from '../../redux/slices/statusSlice';
 
-const Joystick = ({ speed = 50, onSpeedChange }) => {
+const Joystick = ({ speed = 50, onSpeedChange, mqttManager }) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const joystickRef = useRef(null);
@@ -17,15 +17,12 @@ const Joystick = ({ speed = 50, onSpeedChange }) => {
     const normalizedDistance = Math.min(distance / maxDistance, 1);
     const currentSpeed = Math.round(normalizedDistance * speed);
 
-    const deviceIp = ip || '10.42.0.1';
-    const devicePort = port || 5000;
-
     if (distance < 10) {
       // 停止
       dispatch(setDirection('stop'));
       dispatch(setSpeed(0));
-      if (isConnected) {
-        api.stop(deviceIp, devicePort).catch(err => console.error('Error stopping:', err));
+      if (isConnected && mqttManager) {
+        mqttManager.sendCommand('stop');
       }
       return;
     }
@@ -49,8 +46,8 @@ const Joystick = ({ speed = 50, onSpeedChange }) => {
     dispatch(setSpeed(currentSpeed));
 
     // 发送控制指令
-    if (isConnected) {
-      api.move(deviceIp, devicePort, direction, currentSpeed).catch(err => console.error('Error moving:', err));
+    if (isConnected && mqttManager) {
+      mqttManager.sendCommand('move', { direction, speed: currentSpeed });
     }
   };
 
@@ -73,8 +70,8 @@ const Joystick = ({ speed = 50, onSpeedChange }) => {
     setPosition({ x: 0, y: 0 });
     dispatch(setDirection('stop'));
     dispatch(setSpeed(0));
-    if (isConnected) {
-      api.stop(ip, port).catch(err => console.error('Error stopping:', err));
+    if (isConnected && mqttManager) {
+      mqttManager.sendCommand('stop');
     }
   };
 
@@ -120,10 +117,8 @@ const Joystick = ({ speed = 50, onSpeedChange }) => {
     setPosition({ x: 0, y: 0 });
     dispatch(setDirection('stop'));
     dispatch(setSpeed(0));
-    if (isConnected) {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      api.stop(deviceIp, devicePort).catch(err => console.error('Error stopping:', err));
+    if (isConnected && mqttManager) {
+      mqttManager.sendCommand('stop');
     }
   };
 

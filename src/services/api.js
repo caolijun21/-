@@ -374,3 +374,84 @@ export class WebSocketManager {
     return this.ws && this.ws.readyState === WebSocket.OPEN;
   }
 }
+
+// MQTT连接管理
+export class MQTTManager {
+  constructor() {
+    this.brokerUrl = 'ws://broker.emqx.io:8083/mqtt';
+    this.client = null;
+    this.callbacks = {
+      onConnect: [],
+      onMessage: [],
+      onError: [],
+    };
+  }
+  
+  connect() {
+    if (this.client && this.client.connected) {
+      return;
+    }
+    
+    this.client = mqtt.connect(this.brokerUrl);
+    
+    this.client.on('connect', () => {
+      console.log('MQTT 连接成功');
+      // 订阅状态主题
+      this.client.subscribe('pipe_robot/status');
+      this.callbacks.onConnect.forEach(callback => callback());
+    });
+    
+    this.client.on('message', (topic, message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        this.callbacks.onMessage.forEach(callback => callback(topic, data));
+      } catch (error) {
+        console.error('Error parsing MQTT message:', error);
+      }
+    });
+    
+    this.client.on('error', (error) => {
+      console.error('MQTT error:', error);
+      this.callbacks.onError.forEach(callback => callback(error));
+    });
+  }
+  
+  disconnect() {
+    if (this.client) {
+      this.client.end();
+      this.client = null;
+    }
+  }
+  
+  on(event, callback) {
+    if (this.callbacks[event]) {
+      this.callbacks[event].push(callback);
+    }
+  }
+  
+  off(event, callback) {
+    if (this.callbacks[event]) {
+      this.callbacks[event] = this.callbacks[event].filter(cb => cb !== callback);
+    }
+  }
+  
+  // 发送指令函数
+  sendCommand(command, params = {}) {
+    if (this.client && this.client.connected) {
+      const message = JSON.stringify({
+        command: command,
+        ...params,
+        timestamp: Date.now()
+      });
+      this.client.publish('pipe_robot/command', message);
+      console.log('指令已发送:', command);
+      return true;
+    }
+    console.error('MQTT 未连接，无法发送指令');
+    return false;
+  }
+  
+  isConnected() {
+    return this.client && this.client.connected;
+  }
+}

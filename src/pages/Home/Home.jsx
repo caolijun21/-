@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import VideoPlayer from '../../components/VideoPlayer/VideoPlayer';
 import StatusBar from '../../components/StatusBar/StatusBar';
 import Joystick from '../../components/Joystick/Joystick';
-import { api, WebSocketManager } from '../../services/api';
+import { api, WebSocketManager, MQTTManager } from '../../services/api';
 import { setIsConnected, setError } from '../../redux/slices/connectionSlice';
 import { updateStatus } from '../../redux/slices/statusSlice';
 import { startTask, endTask } from '../../redux/slices/taskSlice';
@@ -25,6 +25,8 @@ const Home = () => {
 
   // WebSocket管理器实例
   let wsManager = null;
+  // MQTT管理器实例
+  let mqttManager = null;
 
   // 连接到设备
   const connectToDevice = async () => {
@@ -47,6 +49,17 @@ const Home = () => {
           }
         });
         
+        // 初始化MQTT连接
+        mqttManager = new MQTTManager();
+        mqttManager.connect();
+        
+        // 监听MQTT消息
+        mqttManager.on('message', (topic, data) => {
+          if (topic === 'pipe_robot/status') {
+            dispatch(updateStatus(data));
+          }
+        });
+        
         // 获取初始状态
         const status = await api.getStatus(deviceIp, devicePort);
         dispatch(updateStatus(status));
@@ -61,175 +74,132 @@ const Home = () => {
   };
 
   // 开始任务
-  const handleStartTask = async () => {
+  const handleStartTask = () => {
     if (!isConnected) return;
     
     const operatorName = prompt('请输入操作员姓名:');
     if (!operatorName) return;
     
-    try {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      await api.startTask(deviceIp, devicePort, operatorName);
+    if (mqttManager) {
+      mqttManager.sendCommand('start_task', { operator: operatorName });
       dispatch(startTask({ operator: operatorName }));
-    } catch (error) {
-      console.error('开始任务失败:', error);
     }
   };
 
   // 结束任务
-  const handleEndTask = async () => {
+  const handleEndTask = () => {
     if (!isConnected || !isTaskRunning) return;
     
-    try {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      await api.endTask(deviceIp, devicePort);
+    if (mqttManager) {
+      mqttManager.sendCommand('end_task');
       dispatch(endTask({}));
-    } catch (error) {
-      console.error('结束任务失败:', error);
     }
   };
 
   // 避障跟踪控制
-  const handleObstacleAvoidance = async (mode) => {
+  const handleObstacleAvoidance = (mode) => {
     if (!isConnected) return;
     
-    try {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      
+    if (mqttManager) {
       if (obstacleMode === mode) {
         // 停止避障
-        await api.stopObstacleAvoidance(deviceIp, devicePort);
+        mqttManager.sendCommand('stop_obstacle_avoidance');
         setObstacleMode(null);
       } else {
         // 开始避障
-        await api.startObstacleAvoidance(deviceIp, devicePort, mode);
+        mqttManager.sendCommand('start_obstacle_avoidance', { mode });
         setObstacleMode(mode);
       }
-    } catch (error) {
-      console.error('避障控制失败:', error);
     }
   };
 
   // 巡线模式控制
-  const handleLineFollowing = async () => {
+  const handleLineFollowing = () => {
     if (!isConnected) return;
     
-    try {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      
+    if (mqttManager) {
       if (lineFollowing) {
-        await api.stopLineFollowing(deviceIp, devicePort);
+        mqttManager.sendCommand('stop_line_following');
         setLineFollowing(false);
       } else {
-        await api.startLineFollowing(deviceIp, devicePort);
+        mqttManager.sendCommand('start_line_following');
         setLineFollowing(true);
       }
-    } catch (error) {
-      console.error('巡线模式控制失败:', error);
     }
   };
 
   // 画地为牢控制
-  const handleAreaLimit = async () => {
+  const handleAreaLimit = () => {
     if (!isConnected) return;
     
-    try {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      
+    if (mqttManager) {
       if (areaLimit) {
-        await api.stopAreaLimit(deviceIp, devicePort);
+        mqttManager.sendCommand('stop_area_limit');
         setAreaLimit(false);
       } else {
-        await api.startAreaLimit(deviceIp, devicePort);
+        mqttManager.sendCommand('start_area_limit');
         setAreaLimit(true);
       }
-    } catch (error) {
-      console.error('画地为牢控制失败:', error);
     }
   };
 
   // 目标检测控制
-  const handleObjectDetection = async (type) => {
+  const handleObjectDetection = (type) => {
     if (!isConnected) return;
     
-    try {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      
+    if (mqttManager) {
       if (detectionType === type) {
-        await api.stopObjectDetection(deviceIp, devicePort);
+        mqttManager.sendCommand('stop_object_detection');
         setDetectionType(null);
       } else {
-        await api.startObjectDetection(deviceIp, devicePort, type);
+        mqttManager.sendCommand('start_object_detection', { type });
         setDetectionType(type);
       }
-    } catch (error) {
-      console.error('目标检测控制失败:', error);
     }
   };
 
   // 目标追踪控制
-  const handleObjectTracking = async (type) => {
+  const handleObjectTracking = (type) => {
     if (!isConnected) return;
     
-    try {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      
+    if (mqttManager) {
       if (trackingType === type) {
-        await api.stopObjectTracking(deviceIp, devicePort);
+        mqttManager.sendCommand('stop_object_tracking');
         setTrackingType(null);
       } else {
-        await api.startObjectTracking(deviceIp, devicePort, type);
+        mqttManager.sendCommand('start_object_tracking', { type });
         setTrackingType(type);
       }
-    } catch (error) {
-      console.error('目标追踪控制失败:', error);
     }
   };
 
   // 目标识别控制
-  const handleObjectRecognition = async (type) => {
+  const handleObjectRecognition = (type) => {
     if (!isConnected) return;
     
-    try {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      
+    if (mqttManager) {
       if (recognitionType === type) {
-        await api.stopObjectRecognition(deviceIp, devicePort);
+        mqttManager.sendCommand('stop_object_recognition');
         setRecognitionType(null);
       } else {
-        await api.startObjectRecognition(deviceIp, devicePort, type);
+        mqttManager.sendCommand('start_object_recognition', { type });
         setRecognitionType(type);
       }
-    } catch (error) {
-      console.error('目标识别控制失败:', error);
     }
   };
 
   // 自动驾驶控制
-  const handleAutoDriving = async () => {
+  const handleAutoDriving = () => {
     if (!isConnected) return;
     
-    try {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      
+    if (mqttManager) {
       if (autoDriving) {
-        await api.stopAutoDriving(deviceIp, devicePort);
+        mqttManager.sendCommand('stop_auto_driving');
         setAutoDriving(false);
       } else {
-        await api.startAutoDriving(deviceIp, devicePort);
+        mqttManager.sendCommand('start_auto_driving');
         setAutoDriving(true);
       }
-    } catch (error) {
-      console.error('自动驾驶控制失败:', error);
     }
   };
 
@@ -237,10 +207,13 @@ const Home = () => {
   useEffect(() => {
     connectToDevice();
     
-    // 组件卸载时断开WebSocket连接
+    // 组件卸载时断开连接
     return () => {
       if (wsManager) {
         wsManager.disconnect();
+      }
+      if (mqttManager) {
+        mqttManager.disconnect();
       }
     };
   }, [ip, port]);
@@ -259,7 +232,7 @@ const Home = () => {
         </div>
         <div className="home-top-right">
           <div className="card home-joystick-card">
-            <Joystick speed={speed} onSpeedChange={setSpeed} />
+            <Joystick speed={speed} onSpeedChange={setSpeed} mqttManager={mqttManager} />
           </div>
         </div>
       </div>
