@@ -41,7 +41,8 @@ export const api = {
   
   // 视频流
   getVideoStreamUrl: (ip, port) => {
-    return `${getBaseUrl(ip, port)}/video_feed`;
+    // 使用端口 6001 作为视频流端口
+    return `http://${ip}:6001/video_feed`;
   },
   
   // 状态获取
