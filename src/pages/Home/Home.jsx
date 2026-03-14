@@ -21,7 +21,7 @@ const Home = () => {
   const [trackingType, setTrackingType] = useState(null);
   const [recognitionType, setRecognitionType] = useState(null);
   const [autoDriving, setAutoDriving] = useState(false);
-  const [speed, setSpeed] = useState(50);
+  const [speed, setSpeed] = useState(75);
 
   // WebSocket管理器实例
   let wsManager = null;
@@ -249,15 +249,22 @@ const Home = () => {
     <div className="container pb-20">
       <h1 className="text-xl font-bold mb-4">管道智能巡检系统</h1>
       
-      {/* 视频播放器 */}
-      <div className="mb-4">
-        <VideoPlayer />
+      {/* 顶部两栏布局：左侧视频+状态，右侧手动控制 */}
+      <div className="home-top-layout mb-4">
+        <div className="home-top-left">
+          <div className="card home-video-card">
+            <VideoPlayer />
+          </div>
+          <StatusBar />
+        </div>
+        <div className="home-top-right">
+          <div className="card home-joystick-card">
+            <Joystick speed={speed} onSpeedChange={setSpeed} />
+          </div>
+        </div>
       </div>
       
-      {/* 状态栏 */}
-      <StatusBar />
-      
-      {/* 任务控制 */}
+      {/* 任务控制（开始/结束巡检） */}
       <div className="card mb-4">
         <h2 className="font-bold text-lg mb-2">任务管理</h2>
         <div className="flex gap-4">
@@ -281,28 +288,6 @@ const Home = () => {
             任务进行中 - 操作员: {operator}
           </div>
         )}
-      </div>
-      
-      {/* 速度控制 */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">速度控制</h2>
-        <div className="flex items-center gap-2">
-          <span className="text-sm">速度: {speed}%</span>
-          <input 
-            type="range" 
-            min="0" 
-            max="100" 
-            value={speed} 
-            onChange={(e) => setSpeed(parseInt(e.target.value))}
-            className="flex-1"
-          />
-        </div>
-      </div>
-      
-      {/* 手动控制 */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">手动控制</h2>
-        <Joystick speed={speed} />
       </div>
       
       {/* 避障跟踪 */}

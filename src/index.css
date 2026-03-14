@@ -37,7 +37,8 @@ body {
 
 /* 通用样式 */
 .container {
-  max-width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 1rem;
 }
 
@@ -226,8 +227,8 @@ body {
 /* 虚拟摇杆样式 */
 .joystick-container {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 180px;
+  height: 180px;
   background-color: rgba(0, 0, 0, 0.1);
   border-radius: 50%;
   display: flex;
@@ -238,17 +239,119 @@ body {
 
 .joystick-thumb {
   position: absolute;
-  width: 80px;
-  height: 80px;
-  background-color: rgba(59, 130, 246, 0.7);
+  width: 72px;
+  height: 72px;
+  background: radial-gradient(circle at 30% 30%, #60a5fa, #1d4ed8);
   border-radius: 50%;
   cursor: pointer;
   touch-action: none;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.4);
+}
+
+.joystick-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.joystick-stop-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background-color: #ef4444;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 6px 12px rgba(239, 68, 68, 0.35);
+  cursor: pointer;
+}
+
+.joystick-stop-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+.joystick-speed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.joystick-speed-percent {
+  font-size: 0.875rem;
+  color: #1d4ed8;
+  font-weight: 500;
+}
+
+.vertical-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 4px;
+  height: 140px;
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+
+.vertical-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
+  cursor: pointer;
+}
+
+.vertical-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
+  cursor: pointer;
+}
+
+/* 顶部布局：左视频+状态，右摇杆 */
+.home-top-layout {
+  display: flex;
+  gap: 1rem;
+}
+
+.home-top-left {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.home-top-right {
+  flex: 1;
+}
+
+.home-video-card {
+  padding: 0.75rem;
+}
+
+.home-joystick-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+
+@media (max-width: 768px) {
+  .home-top-layout {
+    flex-direction: column;
+  }
 }
 
 /* 状态栏样式 */
 .status-bar {
-  background-color: white;
+  background: linear-gradient(90deg, #e0f2ff, #f0f9ff);
   border-radius: 0.5rem;
   padding: 0.75rem;
   margin-bottom: 1rem;

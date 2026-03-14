@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { api } from '../../services/api';
 import { setDirection, setSpeed } from '../../redux/slices/statusSlice';
 
-const Joystick = ({ speed = 50 }) => {
+const Joystick = ({ speed = 50, onSpeedChange }) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const joystickRef = useRef(null);
@@ -127,10 +127,25 @@ const Joystick = ({ speed = 50 }) => {
     }
   };
 
+  const handleSpeedChange = (e) => {
+    const value = parseInt(e.target.value);
+    if (Number.isNaN(value)) return;
+    if (onSpeedChange) {
+      onSpeedChange(value);
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div 
-        className="joystick-container" 
+    <div className="joystick-panel">
+      <button
+        className="joystick-stop-button"
+        onClick={handleEmergencyStop}
+      >
+        停
+      </button>
+
+      <div
+        className="joystick-container"
         ref={joystickRef}
         onMouseDown={handleStart}
         onMouseMove={handleMove}
@@ -140,24 +155,24 @@ const Joystick = ({ speed = 50 }) => {
         onTouchMove={handleMove}
         onTouchEnd={handleEnd}
       >
-        <div 
-          className="joystick-thumb" 
+        <div
+          className="joystick-thumb"
           style={{
             transform: `translate(${position.x}px, ${position.y}px)`
           }}
         />
       </div>
-      
-      <div className="w-full max-w-xs">
-        <div className="flex justify-between mb-1">
-          <span className="text-sm">速度: {speed}%</span>
-          <button 
-            className="btn btn-danger btn-sm"
-            onClick={handleEmergencyStop}
-          >
-            急停
-          </button>
-        </div>
+
+      <div className="joystick-speed">
+        <span className="joystick-speed-percent">{speed}%</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={speed}
+          onChange={handleSpeedChange}
+          className="vertical-slider"
+        />
       </div>
     </div>
   );
