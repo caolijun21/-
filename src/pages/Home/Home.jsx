@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import VideoPlayer from '../../components/VideoPlayer/VideoPlayer';
 import StatusBar from '../../components/StatusBar/StatusBar';
 import Joystick from '../../components/Joystick/Joystick';
-import { api, WebSocketManager, MQTTManager } from '../../services/api';
+import { api, WebSocketManager } from '../../services/api';
 import { setIsConnected, setError } from '../../redux/slices/connectionSlice';
 import { updateStatus } from '../../redux/slices/statusSlice';
 import { startTask, endTask } from '../../redux/slices/taskSlice';
@@ -20,14 +20,12 @@ const Home = () => {
 
   // WebSocket管理器实例
   let wsManager = null;
-  // MQTT管理器实例
-  let mqttManager = null;
 
   // 连接到设备
   const connectToDevice = async () => {
     try {
       const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
+      const devicePort = port || 6002;
       const connected = await api.checkConnection(deviceIp, devicePort);
       if (connected) {
         dispatch(setIsConnected(true));
@@ -41,17 +39,6 @@ const Home = () => {
         wsManager.on('message', (data) => {
           if (data.type === 'status') {
             dispatch(updateStatus(data.payload));
-          }
-        });
-        
-        // 初始化MQTT连接
-        mqttManager = new MQTTManager();
-        mqttManager.connect();
-        
-        // 监听MQTT消息
-        mqttManager.on('message', (topic, data) => {
-          if (topic === 'pipe_robot/status') {
-            dispatch(updateStatus(data));
           }
         });
         
@@ -69,34 +56,44 @@ const Home = () => {
   };
 
   // 避障跟踪控制
-  const handleObstacleAvoidance = (mode) => {
+  const handleObstacleAvoidance = async (mode) => {
     if (!isConnected) return;
     
-    if (mqttManager) {
+    try {
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 6002;
+      
       if (obstacleMode === mode) {
         // 停止避障
-        mqttManager.sendCommand('stop_obstacle_avoidance');
+        await api.stopObstacleAvoidance(deviceIp, devicePort);
         setObstacleMode(null);
       } else {
         // 开始避障
-        mqttManager.sendCommand('start_obstacle_avoidance', { mode });
+        await api.startObstacleAvoidance(deviceIp, devicePort, mode);
         setObstacleMode(mode);
       }
+    } catch (error) {
+      console.error('避障控制失败:', error);
     }
   };
 
   // 巡线模式控制
-  const handleLineFollowing = () => {
+  const handleLineFollowing = async () => {
     if (!isConnected) return;
     
-    if (mqttManager) {
+    try {
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 6002;
+      
       if (lineFollowing) {
-        mqttManager.sendCommand('stop_line_following');
+        await api.stopLineFollowing(deviceIp, devicePort);
         setLineFollowing(false);
       } else {
-        mqttManager.sendCommand('start_line_following');
+        await api.startLineFollowing(deviceIp, devicePort);
         setLineFollowing(true);
       }
+    } catch (error) {
+      console.error('巡线模式控制失败:', error);
     }
   };
 
@@ -104,13 +101,10 @@ const Home = () => {
   useEffect(() => {
     connectToDevice();
     
-    // 组件卸载时断开连接
+    // 组件卸载时断开WebSocket连接
     return () => {
       if (wsManager) {
         wsManager.disconnect();
-      }
-      if (mqttManager) {
-        mqttManager.disconnect();
       }
     };
   }, [ip, port]);
@@ -129,7 +123,7 @@ const Home = () => {
         </div>
         <div className="home-top-right">
           <div className="card home-joystick-card">
-            <Joystick speed={speed} onSpeedChange={setSpeed} mqttManager={mqttManager} />
+            <Joystick speed={speed} onSpeedChange={setSpeed} />
           </div>
         </div>
       </div>
