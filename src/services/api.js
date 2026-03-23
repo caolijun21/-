@@ -51,29 +51,37 @@ export const api = {
     return request(url);
   },
   
-  // 控制指令
+  // 电机控制
   move: async (ip, port, direction, speed) => {
-    const url = `${getBaseUrl(ip, port)}/api/control/move`;
+    const url = `${getBaseUrl(ip, port)}/api/motor`;
     return request(url, {
       method: 'POST',
       body: JSON.stringify({ direction, speed }),
     });
   },
   
-  // 云台控制
-  moveCamera: async (ip, port, direction, speed) => {
-    const url = `${getBaseUrl(ip, port)}/api/control/camera`;
+  // 舵机控制
+  moveServo: async (ip, port, servoId, angle) => {
+    const url = `${getBaseUrl(ip, port)}/api/servo`;
     return request(url, {
       method: 'POST',
-      body: JSON.stringify({ direction, speed }),
+      body: JSON.stringify({ servo_id: servoId, angle }),
     });
   },
   
+  // 停止
   stop: async (ip, port) => {
-    const url = `${getBaseUrl(ip, port)}/api/control/stop`;
+    const url = `${getBaseUrl(ip, port)}/api/motor`;
     return request(url, {
       method: 'POST',
+      body: JSON.stringify({ direction: 'stop', speed: 0 }),
     });
+  },
+  
+  // 获取传感器数据
+  getSensors: async (ip, port) => {
+    const url = `${getBaseUrl(ip, port)}/api/sensors`;
+    return request(url);
   },
   
   // 里程重置
@@ -456,3 +464,4 @@ export class MQTTManager {
     return this.client && this.client.connected;
   }
 }
+
