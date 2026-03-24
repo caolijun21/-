@@ -41,8 +41,8 @@ export const api = {
   
   // 视频流
   getVideoStreamUrl: (ip, port) => {
-    // 使用端口 6001 作为视频流端口
-    return `http://${ip}:6001/video_feed`;
+    // 使用端口 6002 作为视频流端口
+    return `http://${ip}:6002/video_feed`;
   },
   
   // 状态获取
@@ -53,7 +53,7 @@ export const api = {
   
   // 电机控制
   move: async (ip, port, direction, speed) => {
-    const url = `${getBaseUrl(ip, port)}/api/motor`;
+    const url = `${getBaseUrl(ip, port)}/api/control/move`;
     return request(url, {
       method: 'POST',
       body: JSON.stringify({ direction, speed }),
@@ -71,10 +71,9 @@ export const api = {
   
   // 停止
   stop: async (ip, port) => {
-    const url = `${getBaseUrl(ip, port)}/api/motor`;
+    const url = `${getBaseUrl(ip, port)}/api/control/stop`;
     return request(url, {
       method: 'POST',
-      body: JSON.stringify({ direction: 'stop', speed: 0 }),
     });
   },
   
@@ -94,7 +93,7 @@ export const api = {
   
   // 避障跟踪
   startObstacleAvoidance: async (ip, port, mode) => {
-    const url = `${getBaseUrl(ip, port)}/api/obstacle/start`;
+    const url = `${getBaseUrl(ip, port)}/api/ultra_avoid?enable=true`;
     return request(url, {
       method: 'POST',
       body: JSON.stringify({ mode }), // mode: 'ultrasonic' or 'ultrasonic_ir'
@@ -102,7 +101,7 @@ export const api = {
   },
   
   stopObstacleAvoidance: async (ip, port) => {
-    const url = `${getBaseUrl(ip, port)}/api/obstacle/stop`;
+    const url = `${getBaseUrl(ip, port)}/api/ultra_avoid?enable=false`;
     return request(url, {
       method: 'POST',
     });
@@ -292,15 +291,15 @@ export const api = {
   },
 };
 
-// WebSocket连接管理
-export class WebSocketManager {
+// Socket.IO连接管理
+export class SocketManager {
   constructor(ip, port) {
     this.ip = ip;
     this.port = port;
-    this.ws = null;
+    this.socket = null;
     this.callbacks = {
-      onOpen: [],
-      onClose: [],
+      onConnect: [],
+      onDisconnect: [],
       onMessage: [],
       onError: [],
     };
@@ -310,44 +309,43 @@ export class WebSocketManager {
   }
   
   connect() {
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+    if (this.socket && this.socket.connected) {
       return;
     }
     
-    const wsUrl = `ws://${this.ip}:${this.port}/ws`;
-    this.ws = new WebSocket(wsUrl);
+    const socketUrl = `http://${this.ip}:${this.port}`;
+    this.socket = io(socketUrl);
     
-    this.ws.onopen = () => {
-      console.log('WebSocket connected');
+    this.socket.on('connect', () => {
+      console.log('Socket.IO connected');
       this.reconnectAttempts = 0;
-      this.callbacks.onOpen.forEach(callback => callback());
-    };
+      this.callbacks.onConnect.forEach(callback => callback());
+    });
     
-    this.ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      this.callbacks.onClose.forEach(callback => callback());
+    this.socket.on('disconnect', () => {
+      console.log('Socket.IO disconnected');
+      this.callbacks.onDisconnect.forEach(callback => callback());
       this.attemptReconnect();
-    };
+    });
     
-    this.ws.onmessage = (event) => {
+    this.socket.on('status_update', (data) => {
       try {
-        const data = JSON.parse(event.data);
-        this.callbacks.onMessage.forEach(callback => callback(data));
+        this.callbacks.onMessage.forEach(callback => callback({ type: 'status', payload: data }));
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+        console.error('Error parsing Socket.IO message:', error);
       }
-    };
+    });
     
-    this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+    this.socket.on('error', (error) => {
+      console.error('Socket.IO error:', error);
       this.callbacks.onError.forEach(callback => callback(error));
-    };
+    });
   }
   
   disconnect() {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
     }
   }
   
@@ -374,13 +372,13 @@ export class WebSocketManager {
   }
   
   send(message) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message));
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('message', message);
     }
   }
   
   isConnected() {
-    return this.ws && this.ws.readyState === WebSocket.OPEN;
+    return this.socket && this.socket.connected;
   }
 }
 
