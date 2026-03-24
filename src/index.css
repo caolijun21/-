@@ -390,6 +390,14 @@ body {
   text-decoration: none;
   font-size: 0.75rem;
   transition: color 0.2s ease-in-out;
+  padding: 0.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  color: #3b82f6;
 }
 
 .nav-item.active {
