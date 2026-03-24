@@ -326,19 +326,69 @@ const Home = () => {
     <div className="container pb-20">
       <h1 className="text-xl font-bold mb-4">管道智能巡检系统</h1>
       
-      {/* 顶部两栏布局：左侧视频+状态，右侧手动控制 */}
-      <div className="home-top-layout mb-4">
-        <div className="home-top-left">
+      {/* 顶部布局：中间视频，左上角速度，左侧舵机控制，右侧方向控制 */}
+      <div className="flex flex-col gap-4 mb-4">
+        {/* 视频和速度控制 */}
+        <div className="relative">
           <div className="card home-video-card">
             <VideoPlayer />
           </div>
-          <StatusBar />
-        </div>
-        <div className="home-top-right">
-          <div className="card home-joystick-card">
-            <Joystick speed={speed} onSpeedChange={setSpeed} />
+          {/* 左上角速度显示 */}
+          <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full">
+            速度: {speed}%
           </div>
         </div>
+        
+        {/* 左右控制布局 */}
+        <div className="flex gap-4">
+          {/* 左侧舵机控制 */}
+          <div className="flex-1">
+            <div className="card">
+              <h2 className="font-bold text-lg mb-2">舵机控制</h2>
+              <div className="mb-4">
+                <label className="block mb-2">舵机编号:</label>
+                <select 
+                  value={servoId} 
+                  onChange={(e) => setServoId(parseInt(e.target.value))}
+                  className="input"
+                >
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                  <option value={3}>3</option>
+                  <option value={4}>4</option>
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block mb-2">角度: {servoAngle}°</label>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="180" 
+                  value={servoAngle} 
+                  onChange={(e) => setServoAngle(parseInt(e.target.value))}
+                  className="input"
+                />
+              </div>
+              <button 
+                className="btn btn-primary"
+                onClick={handleServoControl}
+                disabled={!isConnected}
+              >
+                控制舵机
+              </button>
+            </div>
+          </div>
+          
+          {/* 右侧方向控制 */}
+          <div className="flex-1">
+            <div className="card home-joystick-card">
+              <h2 className="font-bold text-lg mb-2 text-center">方向控制</h2>
+              <Joystick speed={speed} onSpeedChange={setSpeed} />
+            </div>
+          </div>
+        </div>
+        
+        <StatusBar />
       </div>
       
       {/* 避障跟踪 */}
@@ -395,41 +445,7 @@ const Home = () => {
         )}
       </div>
       
-      {/* 舵机控制 */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">舵机控制</h2>
-        <div className="mb-4">
-          <label className="block mb-2">舵机编号:</label>
-          <select 
-            value={servoId} 
-            onChange={(e) => setServoId(parseInt(e.target.value))}
-            className="input"
-          >
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-            <option value={3}>3</option>
-            <option value={4}>4</option>
-          </select>
-        </div>
-        <div className="mb-4">
-          <label className="block mb-2">角度: {servoAngle}°</label>
-          <input 
-            type="range" 
-            min="0" 
-            max="180" 
-            value={servoAngle} 
-            onChange={(e) => setServoAngle(parseInt(e.target.value))}
-            className="input"
-          />
-        </div>
-        <button 
-          className="btn btn-primary"
-          onClick={handleServoControl}
-          disabled={!isConnected}
-        >
-          控制舵机
-        </button>
-      </div>
+
       
       {/* 任务管理 */}
       <div className="card mb-4">
