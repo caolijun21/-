@@ -21,6 +21,10 @@ const Home = () => {
   const [servoId, setServoId] = useState(1);
   const [servoAngle, setServoAngle] = useState(90);
   const [operatorName, setOperatorName] = useState('');
+  const [taskStatus, setTaskStatus] = useState('未开始');
+  const [taskOperator, setTaskOperator] = useState('');
+  const [taskStartTime, setTaskStartTime] = useState('');
+  const [taskEndTime, setTaskEndTime] = useState('');
   
   // 新增状态
   const [reports, setReports] = useState([]);
@@ -185,6 +189,12 @@ const Home = () => {
       const devicePort = port || 6002;
       await api.startTask(deviceIp, devicePort, operatorName);
       dispatch(startTask({ operator: operatorName }));
+      
+      // 更新任务状态
+      setTaskStatus('进行中');
+      setTaskOperator(operatorName);
+      setTaskStartTime(new Date().toLocaleString());
+      setTaskEndTime('');
     } catch (error) {
       console.error('开始任务失败:', error);
     }
@@ -199,6 +209,10 @@ const Home = () => {
       const devicePort = port || 6002;
       await api.endTask(deviceIp, devicePort);
       dispatch(endTask({}));
+      
+      // 更新任务状态
+      setTaskStatus('已结束');
+      setTaskEndTime(new Date().toLocaleString());
     } catch (error) {
       console.error('结束任务失败:', error);
     }
@@ -420,6 +434,31 @@ const Home = () => {
       {/* 任务管理 */}
       <div className="card mb-4">
         <h2 className="font-bold text-lg mb-2">任务管理</h2>
+        
+        {/* 任务状态显示 */}
+        <div className="mb-4 p-3 bg-gray-50 rounded">
+          <div className="flex justify-between mb-1">
+            <span className="font-medium">任务状态:</span>
+            <span className={`font-bold ${taskStatus === '进行中' ? 'text-green-600' : taskStatus === '已结束' ? 'text-blue-600' : 'text-gray-600'}`}>
+              {taskStatus}
+            </span>
+          </div>
+          <div className="flex justify-between mb-1">
+            <span className="font-medium">操作员:</span>
+            <span>{taskOperator || '未设置'}</span>
+          </div>
+          <div className="flex justify-between mb-1">
+            <span className="font-medium">开始时间:</span>
+            <span>{taskStartTime || '未开始'}</span>
+          </div>
+          {taskEndTime && (
+            <div className="flex justify-between">
+              <span className="font-medium">结束时间:</span>
+              <span>{taskEndTime}</span>
+            </div>
+          )}
+        </div>
+        
         <div className="mb-4">
           <label className="block mb-2">操作员:</label>
           <input 
