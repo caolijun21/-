@@ -21,6 +21,23 @@ const Home = () => {
   const [servoId, setServoId] = useState(1);
   const [servoAngle, setServoAngle] = useState(90);
   const [operatorName, setOperatorName] = useState('');
+  
+  // 新增状态
+  const [reports, setReports] = useState([]);
+  const [defects, setDefects] = useState([]);
+  const [wifiList, setWifiList] = useState([]);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailSettings, setEmailSettings] = useState({
+    smtp: '',
+    port: '',
+    email: '',
+    password: '',
+    recipient: ''
+  });
+  const [reportFormat, setReportFormat] = useState('pdf');
+  const [selectedWifi, setSelectedWifi] = useState(null);
+  const [wifiPassword, setWifiPassword] = useState('');
+  const [showWifiModal, setShowWifiModal] = useState(false);
 
   // Socket.IO管理器实例
   let socketManager = null;
@@ -43,12 +60,17 @@ const Home = () => {
         socketManager.on('onMessage', (data) => {
           if (data.type === 'status') {
             dispatch(updateStatus(data.payload));
+          } else if (data.type === 'new_defect') {
+            setDefects(prev => [data.payload, ...prev]);
           }
         });
         
         // 获取初始状态
         const status = await api.getStatus(deviceIp, devicePort);
         dispatch(updateStatus(status));
+        
+        // 获取初始数据
+        await fetchInitialData();
       } else {
         dispatch(setIsConnected(false));
         dispatch(setError('无法连接到设备，请检查IP和端口'));
@@ -56,6 +78,32 @@ const Home = () => {
     } catch (error) {
       dispatch(setIsConnected(false));
       dispatch(setError('连接失败: ' + error.message));
+    }
+  };
+
+  // 获取初始数据
+  const fetchInitialData = async () => {
+    if (!isConnected) return;
+    
+    try {
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 6002;
+      
+      // 获取缺陷列表
+      const defectsData = await api.getDefects(deviceIp, devicePort);
+      setDefects(defectsData);
+      
+      // 获取报告列表
+      const reportsData = await api.getReports(deviceIp, devicePort);
+      setReports(reportsData);
+      
+      // 获取邮箱设置
+      const emailData = await api.getEmailSettings(deviceIp, devicePort);
+      if (emailData) {
+        setEmailSettings(emailData);
+      }
+    } catch (error) {
+      console.error('获取初始数据失败:', error);
     }
   };
 
@@ -163,10 +211,85 @@ const Home = () => {
     try {
       const deviceIp = ip || '10.42.0.1';
       const devicePort = port || 6002;
-      const result = await api.generateReport(deviceIp, devicePort, 'pdf');
+      const result = await api.generateReport(deviceIp, devicePort, reportFormat);
       console.log('报告生成成功:', result);
+      
+      // 刷新报告列表
+      const reportsData = await api.getReports(deviceIp, devicePort);
+      setReports(reportsData);
     } catch (error) {
       console.error('生成报告失败:', error);
+    }
+  };
+
+  // 刷新报告列表
+  const handleRefreshReports = async () => {
+    if (!isConnected) return;
+    
+    try {
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 6002;
+      const reportsData = await api.getReports(deviceIp, devicePort);
+      setReports(reportsData);
+    } catch (error) {
+      console.error('刷新报告列表失败:', error);
+    }
+  };
+
+  // 保存邮箱设置
+  const handleSaveEmailSettings = async () => {
+    if (!isConnected) return;
+    
+    try {
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 6002;
+      await api.saveEmailSettings(deviceIp, devicePort, emailSettings);
+      setShowEmailModal(false);
+    } catch (error) {
+      console.error('保存邮箱设置失败:', error);
+    }
+  };
+
+  // 扫描WiFi
+  const handleScanWifi = async () => {
+    if (!isConnected) return;
+    
+    try {
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 6002;
+      const wifiData = await api.scanWiFi(deviceIp, devicePort);
+      setWifiList(wifiData);
+    } catch (error) {
+      console.error('扫描WiFi失败:', error);
+    }
+  };
+
+  // 连接WiFi
+  const handleConnectWifi = async () => {
+    if (!isConnected || !selectedWifi || !wifiPassword) return;
+    
+    try {
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 6002;
+      await api.connectWiFi(deviceIp, devicePort, selectedWifi.ssid, wifiPassword);
+      setShowWifiModal(false);
+      setSelectedWifi(null);
+      setWifiPassword('');
+    } catch (error) {
+      console.error('连接WiFi失败:', error);
+    }
+  };
+
+  // 启动热点
+  const handleStartHotspot = async () => {
+    if (!isConnected) return;
+    
+    try {
+      const deviceIp = ip || '10.42.0.1';
+      const devicePort = port || 6002;
+      await api.startHotspot(deviceIp, devicePort);
+    } catch (error) {
+      console.error('启动热点失败:', error);
     }
   };
 
@@ -251,8 +374,9 @@ const Home = () => {
         </button>
         {sensorData && (
           <div className="sensor-data">
-            <p>距离: {sensorData.distance || 'N/A'} cm</p>
-            <p>红外状态: {sensorData.ir_status || 'N/A'}</p>
+            <p>距离: {sensorData.distance_cm || sensorData.distance || 'N/A'} cm</p>
+            <p>左红外状态: {sensorData.left_obstacle || 'N/A'}</p>
+            <p>右红外状态: {sensorData.right_obstacle || 'N/A'}</p>
           </div>
         )}
       </div>
@@ -327,14 +451,251 @@ const Home = () => {
       {/* 报告生成 */}
       <div className="card mb-4">
         <h2 className="font-bold text-lg mb-2">报告生成</h2>
+        <div className="mb-4">
+          <label className="block mb-2">报告格式:</label>
+          <select 
+            value={reportFormat} 
+            onChange={(e) => setReportFormat(e.target.value)}
+            className="input"
+          >
+            <option value="pdf">PDF</option>
+            <option value="txt">TXT</option>
+            <option value="json">JSON</option>
+          </select>
+        </div>
+        <div className="flex gap-2 mb-4">
+          <button 
+            className="btn btn-primary flex-1"
+            onClick={handleGenerateReport}
+            disabled={!isConnected}
+          >
+            生成报告
+          </button>
+          <button 
+            className="btn btn-secondary flex-1"
+            onClick={handleRefreshReports}
+            disabled={!isConnected}
+          >
+            刷新报告列表
+          </button>
+        </div>
         <button 
-          className="btn btn-primary"
-          onClick={handleGenerateReport}
+          className="btn btn-secondary mb-4"
+          onClick={() => setShowEmailModal(true)}
           disabled={!isConnected}
         >
-          生成 PDF 报告
+          配置邮箱
         </button>
+        {reports.length > 0 && (
+          <div className="reports-list">
+            <h3 className="font-bold mb-2">报告列表:</h3>
+            <ul>
+              {reports.map((report, index) => (
+                <li key={index} className="mb-2">
+                  <a 
+                    href={api.downloadFile(ip || '10.42.0.1', port || 6002, report.filename)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    {report.filename}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
+      
+      {/* 网络管理 */}
+      <div className="card mb-4">
+        <h2 className="font-bold text-lg mb-2">网络管理</h2>
+        <div className="flex gap-2 mb-4">
+          <button 
+            className="btn btn-primary flex-1"
+            onClick={handleScanWifi}
+            disabled={!isConnected}
+          >
+            扫描WiFi
+          </button>
+          <button 
+            className="btn btn-secondary flex-1"
+            onClick={handleStartHotspot}
+            disabled={!isConnected}
+          >
+            启动热点
+          </button>
+        </div>
+        {wifiList.length > 0 && (
+          <div className="wifi-list">
+            <h3 className="font-bold mb-2">WiFi列表:</h3>
+            <ul>
+              {wifiList.map((wifi, index) => (
+                <li key={index} className="mb-2">
+                  <button 
+                    className="text-left w-full p-2 border rounded"
+                    onClick={() => {
+                      setSelectedWifi(wifi);
+                      setShowWifiModal(true);
+                    }}
+                  >
+                    <div className="font-bold">{wifi.ssid}</div>
+                    <div className="text-sm text-gray-600">信号强度: {wifi.signal}%</div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      
+      {/* 缺陷记录 */}
+      <div className="card mb-4">
+        <h2 className="font-bold text-lg mb-2">缺陷记录</h2>
+        {defects.length > 0 ? (
+          <div className="defects-table">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="text-left p-2 border-b">时间</th>
+                  <th className="text-left p-2 border-b">缺陷类型</th>
+                  <th className="text-left p-2 border-b">距离(米)</th>
+                  <th className="text-left p-2 border-b">置信度(%)</th>
+                  <th className="text-left p-2 border-b">图像</th>
+                </tr>
+              </thead>
+              <tbody>
+                {defects.map((defect, index) => (
+                  <tr key={index}>
+                    <td className="p-2 border-b">{defect.time || new Date().toLocaleString()}</td>
+                    <td className="p-2 border-b">{defect.type || '未知'}</td>
+                    <td className="p-2 border-b">{defect.distance || 'N/A'}</td>
+                    <td className="p-2 border-b">{defect.confidence || 'N/A'}</td>
+                    <td className="p-2 border-b">
+                      {defect.image ? (
+                        <img 
+                          src={api.downloadFile(ip || '10.42.0.1', port || 6002, defect.image)}
+                          alt="缺陷图像"
+                          className="w-16 h-16 object-cover"
+                        />
+                      ) : (
+                        '无图像'
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>暂无缺陷记录</p>
+        )}
+      </div>
+      
+      {/* 邮箱配置模态框 */}
+      {showEmailModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3 className="font-bold text-lg mb-4">配置邮箱</h3>
+            <div className="mb-4">
+              <label className="block mb-2">SMTP服务器:</label>
+              <input 
+                type="text" 
+                value={emailSettings.smtp}
+                onChange={(e) => setEmailSettings({...emailSettings, smtp: e.target.value})}
+                className="input"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-2">端口:</label>
+              <input 
+                type="text" 
+                value={emailSettings.port}
+                onChange={(e) => setEmailSettings({...emailSettings, port: e.target.value})}
+                className="input"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-2">发件人邮箱:</label>
+              <input 
+                type="email" 
+                value={emailSettings.email}
+                onChange={(e) => setEmailSettings({...emailSettings, email: e.target.value})}
+                className="input"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-2">密码:</label>
+              <input 
+                type="password" 
+                value={emailSettings.password}
+                onChange={(e) => setEmailSettings({...emailSettings, password: e.target.value})}
+                className="input"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-2">收件人邮箱:</label>
+              <input 
+                type="email" 
+                value={emailSettings.recipient}
+                onChange={(e) => setEmailSettings({...emailSettings, recipient: e.target.value})}
+                className="input"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button 
+                className="btn btn-primary flex-1"
+                onClick={handleSaveEmailSettings}
+              >
+                保存
+              </button>
+              <button 
+                className="btn btn-secondary flex-1"
+                onClick={() => setShowEmailModal(false)}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* WiFi连接模态框 */}
+      {showWifiModal && selectedWifi && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3 className="font-bold text-lg mb-4">连接 WiFi: {selectedWifi.ssid}</h3>
+            <div className="mb-4">
+              <label className="block mb-2">密码:</label>
+              <input 
+                type="password" 
+                value={wifiPassword}
+                onChange={(e) => setWifiPassword(e.target.value)}
+                className="input"
+                placeholder="输入WiFi密码"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button 
+                className="btn btn-primary flex-1"
+                onClick={handleConnectWifi}
+              >
+                连接
+              </button>
+              <button 
+                className="btn btn-secondary flex-1"
+                onClick={() => {
+                  setShowWifiModal(false);
+                  setSelectedWifi(null);
+                  setWifiPassword('');
+                }}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
