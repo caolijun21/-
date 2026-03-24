@@ -10,8 +10,18 @@ const VideoPlayer = () => {
 
   // 获取视频流URL
   const deviceIp = ip || '10.42.0.1';
-  const devicePort = port || 5000;
-  const videoUrl = isConnected ? api.getVideoStreamUrl(deviceIp, devicePort) : '';
+  const devicePort = port || 6002;
+  const [videoUrl, setVideoUrl] = useState('');
+
+  // 延迟加载视频流，避免阻塞页面加载
+  useEffect(() => {
+    if (isConnected) {
+      const videoUrl = api.getVideoStreamUrl(deviceIp, devicePort);
+      setVideoUrl(videoUrl);
+    } else {
+      setVideoUrl('');
+    }
+  }, [isConnected, deviceIp, devicePort]);
 
   // 处理全屏切换
   const toggleFullscreen = () => {

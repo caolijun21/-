@@ -170,12 +170,15 @@ const Home = () => {
     }
   };
 
-  // 组件挂载时连接设备
+  // 组件挂载时连接设备（使用 setTimeout 延迟执行，避免阻塞页面加载）
   useEffect(() => {
-    connectToDevice();
+    const connectTimer = setTimeout(() => {
+      connectToDevice();
+    }, 1000);
     
     // 组件卸载时断开Socket.IO连接
     return () => {
+      clearTimeout(connectTimer);
       if (socketManager) {
         socketManager.disconnect();
       }
