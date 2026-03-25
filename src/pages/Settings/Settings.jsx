@@ -1,80 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { api } from '../../services/api';
-import { setIp, setPort, setError } from '../../redux/slices/connectionSlice';
-import { setEmailSettings, setNetworkSettings } from '../../redux/slices/settingsSlice';
-import { setOdometry } from '../../redux/slices/statusSlice';
+import { setIsConnected, setError } from '../../redux/slices/connectionSlice';
+import { startTask, endTask } from '../../redux/slices/taskSlice';
 
 const Settings = () => {
   const dispatch = useDispatch();
   const { ip, port, isConnected } = useSelector(state => state.connection);
-  const { email, network } = useSelector(state => state.settings);
-  const [localIp, setLocalIp] = useState(ip || '10.42.0.1');
-  const [localPort, setLocalPort] = useState(port || 5000);
-  const [localEmail, setLocalEmail] = useState(email);
-  const [localNetwork, setLocalNetwork] = useState(network);
-  const [wifiNetworks, setWifiNetworks] = useState([]);
-  const [isScanning, setIsScanning] = useState(false);
-
-  // 连接设置
-  const handleConnectionSubmit = (e) => {
-    e.preventDefault();
-    dispatch(setIp(localIp));
-    dispatch(setPort(localPort));
-  };
-
-  // 邮箱设置
-  const handleEmailSubmit = async (e) => {
-    e.preventDefault();
-    if (!isConnected) return;
-    
-    try {
-      const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      await api.saveEmailSettings(deviceIp, devicePort, localEmail);
-      dispatch(setEmailSettings(localEmail));
-      alert('邮箱设置保存成功');
-    } catch (error) {
-      console.error('保存邮箱设置失败:', error);
-      dispatch(setError('保存邮箱设置失败: ' + error.message));
-    }
-  };
+  const { isTaskRunning, operator } = useSelector(state => state.task);
+  
+  // 状态管理
+  const [wifiList, setWifiList] = useState([]);
+  const [selectedWifi, setSelectedWifi] = useState(null);
+  const [wifiPassword, setWifiPassword] = useState('');
+  const [showWifiModal, setShowWifiModal] = useState(false);
+  const [operatorName, setOperatorName] = useState('');
+  const [taskStatus, setTaskStatus] = useState('未开始');
+  const [taskOperator, setTaskOperator] = useState('');
+  const [taskStartTime, setTaskStartTime] = useState('');
+  const [taskEndTime, setTaskEndTime] = useState('');
 
   // 扫描WiFi
   const handleScanWifi = async () => {
     if (!isConnected) return;
     
-    setIsScanning(true);
     try {
       const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      const networks = await api.scanWiFi(deviceIp, devicePort);
-      setWifiNetworks(networks);
+      const devicePort = port || 6002;
+      const wifiData = await api.scanWiFi(deviceIp, devicePort);
+      setWifiList(wifiData);
     } catch (error) {
       console.error('扫描WiFi失败:', error);
-      dispatch(setError('扫描WiFi失败: ' + error.message));
-    } finally {
-      setIsScanning(false);
     }
   };
 
   // 连接WiFi
-  const handleConnectWifi = async (ssid) => {
-    if (!isConnected) return;
-    
-    const password = prompt(`请输入 ${ssid} 的密码:`);
-    if (!password) return;
+  const handleConnectWifi = async () => {
+    if (!isConnected || !selectedWifi || !wifiPassword) return;
     
     try {
       const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      await api.connectWiFi(deviceIp, devicePort, ssid, password);
-      setLocalNetwork({ ...localNetwork, ssid, mode: 'client' });
-      dispatch(setNetworkSettings({ ssid, mode: 'client' }));
-      alert('WiFi连接成功');
+      const devicePort = port || 6002;
+      await api.connectWiFi(deviceIp, devicePort, selectedWifi.ssid, wifiPassword);
+      setShowWifiModal(false);
+      setSelectedWifi(null);
+      setWifiPassword('');
     } catch (error) {
       console.error('连接WiFi失败:', error);
-      dispatch(setError('连接WiFi失败: ' + error.message));
     }
   };
 
@@ -84,59 +56,48 @@ const Settings = () => {
     
     try {
       const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
+      const devicePort = port || 6002;
       await api.startHotspot(deviceIp, devicePort);
-      setLocalNetwork({ ...localNetwork, mode: 'hotspot' });
-      dispatch(setNetworkSettings({ mode: 'hotspot' }));
-      alert('热点启动成功');
     } catch (error) {
       console.error('启动热点失败:', error);
-      dispatch(setError('启动热点失败: ' + error.message));
     }
   };
 
-  // 重置里程
-  const handleResetOdometry = async () => {
-    if (!isConnected) return;
+  // 开始任务
+  const handleStartTask = async () => {
+    if (!isConnected || !operatorName) return;
     
     try {
       const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      await api.resetOdometry(deviceIp, devicePort);
-      dispatch(setOdometry(0));
-      alert('里程重置成功');
+      const devicePort = port || 6002;
+      await api.startTask(deviceIp, devicePort, operatorName);
+      dispatch(startTask({ operator: operatorName }));
+      
+      // 更新任务状态
+      setTaskStatus('进行中');
+      setTaskOperator(operatorName);
+      setTaskStartTime(new Date().toLocaleString());
+      setTaskEndTime('');
     } catch (error) {
-      console.error('重置里程失败:', error);
-      dispatch(setError('重置里程失败: ' + error.message));
+      console.error('开始任务失败:', error);
     }
   };
 
-  // 拍照
-  const handleTakeSnapshot = async () => {
-    if (!isConnected) return;
+  // 结束任务
+  const handleEndTask = async () => {
+    if (!isConnected || !isTaskRunning) return;
     
     try {
       const deviceIp = ip || '10.42.0.1';
-      const devicePort = port || 5000;
-      await api.takeSnapshot(deviceIp, devicePort);
-      alert('拍照成功');
+      const devicePort = port || 6002;
+      await api.endTask(deviceIp, devicePort);
+      dispatch(endTask({}));
+      
+      // 更新任务状态
+      setTaskStatus('已结束');
+      setTaskEndTime(new Date().toLocaleString());
     } catch (error) {
-      console.error('拍照失败:', error);
-      dispatch(setError('拍照失败: ' + error.message));
-    }
-  };
-
-  // 测试邮箱连接
-  const handleTestEmail = async () => {
-    if (!isConnected) return;
-    
-    try {
-      // 这里应该调用API测试邮箱连接，假设API为POST /api/settings/email/test
-      // await api.testEmailSettings(ip, port, localEmail);
-      alert('邮箱连接测试成功');
-    } catch (error) {
-      console.error('邮箱连接测试失败:', error);
-      dispatch(setError('邮箱连接测试失败: ' + error.message));
+      console.error('结束任务失败:', error);
     }
   };
 
@@ -144,181 +105,163 @@ const Settings = () => {
     <div className="container pb-20">
       <h1 className="text-xl font-bold mb-4">系统设置</h1>
       
-      {/* 连接设置 */}
+      {/* 网络管理 */}
       <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">连接设置</h2>
-        <form onSubmit={handleConnectionSubmit} className="space-y-2">
-          <div>
-            <label className="block text-sm mb-1">IP地址</label>
-            <input 
-              type="text" 
-              value={localIp} 
-              onChange={(e) => setLocalIp(e.target.value)}
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">端口</label>
-            <input 
-              type="number" 
-              value={localPort} 
-              onChange={(e) => setLocalPort(parseInt(e.target.value))}
-              className="input"
-            />
-          </div>
-          <button type="submit" className="btn btn-primary w-full">
-            保存
-          </button>
-        </form>
-      </div>
-      
-      {/* 网络设置 */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">网络设置</h2>
-        <div className="mb-4">
+        <h2 className="font-bold text-lg mb-2">网络管理</h2>
+        <div className="flex gap-2 mb-4">
           <button 
-            className="btn btn-primary w-full mb-2"
+            className="btn btn-primary flex-1"
             onClick={handleScanWifi}
-            disabled={isScanning || !isConnected}
+            disabled={!isConnected}
           >
-            {isScanning ? '扫描中...' : '扫描WiFi'}
+            扫描WiFi
           </button>
           <button 
-            className="btn btn-secondary w-full"
+            className="btn btn-secondary flex-1"
             onClick={handleStartHotspot}
             disabled={!isConnected}
           >
             启动热点
           </button>
         </div>
-        {wifiNetworks.length > 0 && (
-          <div className="mt-4">
-            <h3 className="font-bold mb-2">可用WiFi网络</h3>
-            <div className="space-y-2">
-              {wifiNetworks.map((network, index) => (
-                <div key={index} className="flex justify-between items-center p-2 border rounded">
-                  <span>{network.ssid}</span>
+        {wifiList.length > 0 && (
+          <div className="wifi-list">
+            <h3 className="font-bold mb-2">WiFi列表:</h3>
+            <ul>
+              {wifiList.map((wifi, index) => (
+                <li key={index} className="mb-2">
                   <button 
-                    className="btn btn-primary btn-sm"
-                    onClick={() => handleConnectWifi(network.ssid)}
+                    className="text-left w-full p-2 border rounded"
+                    onClick={() => {
+                      setSelectedWifi(wifi);
+                      setShowWifiModal(true);
+                    }}
                   >
-                    连接
+                    <div className="font-bold">{wifi.ssid}</div>
+                    <div className="text-sm text-gray-600">信号强度: {wifi.signal}%</div>
                   </button>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
       </div>
       
-      {/* 邮箱设置 */}
+      {/* 任务管理 */}
       <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">邮箱设置</h2>
-        <form onSubmit={handleEmailSubmit} className="space-y-2">
-          <div>
-            <label className="block text-sm mb-1">SMTP服务器</label>
-            <input 
-              type="text" 
-              value={localEmail.smtp} 
-              onChange={(e) => setLocalEmail({ ...localEmail, smtp: e.target.value })}
-              className="input"
-            />
+        <h2 className="font-bold text-lg mb-2">任务管理</h2>
+        
+        {/* 任务状态显示 */}
+        <div className="mb-4 p-3 bg-gray-50 rounded">
+          <div className="flex justify-between mb-1">
+            <span className="font-medium">任务状态:</span>
+            <span className={`font-bold ${taskStatus === '进行中' ? 'text-green-600' : taskStatus === '已结束' ? 'text-blue-600' : 'text-gray-600'}`}>
+              {taskStatus}
+            </span>
           </div>
-          <div>
-            <label className="block text-sm mb-1">端口</label>
-            <input 
-              type="number" 
-              value={localEmail.port} 
-              onChange={(e) => setLocalEmail({ ...localEmail, port: parseInt(e.target.value)})}
-              className="input"
-            />
+          <div className="flex justify-between mb-1">
+            <span className="font-medium">操作员:</span>
+            <span>{taskOperator || '未设置'}</span>
           </div>
-          <div>
-            <label className="block text-sm mb-1">发件人邮箱</label>
-            <input 
-              type="email" 
-              value={localEmail.username} 
-              onChange={(e) => setLocalEmail({ ...localEmail, username: e.target.value })}
-              className="input"
-            />
+          <div className="flex justify-between mb-1">
+            <span className="font-medium">开始时间:</span>
+            <span>{taskStartTime || '未开始'}</span>
           </div>
-          <div>
-            <label className="block text-sm mb-1">密码</label>
-            <input 
-              type="password" 
-              value={localEmail.password} 
-              onChange={(e) => setLocalEmail({ ...localEmail, password: e.target.value })}
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">收件人邮箱</label>
-            <input 
-              type="email" 
-              value={localEmail.recipient} 
-              onChange={(e) => setLocalEmail({ ...localEmail, recipient: e.target.value })}
-              className="input"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" className="btn btn-primary flex-1">
-              保存
-            </button>
-            <button 
-              type="button" 
-              className="btn btn-secondary flex-1"
-              onClick={handleTestEmail}
-              disabled={!isConnected}
-            >
-              测试连接
-            </button>
-          </div>
-        </form>
-      </div>
-      
-      {/* 系统控制 */}
-      <div className="card mb-4">
-        <h2 className="font-bold text-lg mb-2">系统控制</h2>
-        <div className="space-y-2">
+          {taskEndTime && (
+            <div className="flex justify-between">
+              <span className="font-medium">结束时间:</span>
+              <span>{taskEndTime}</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="mb-4">
+          <label className="block mb-2">操作员:</label>
+          <input 
+            type="text" 
+            value={operatorName} 
+            onChange={(e) => setOperatorName(e.target.value)}
+            className="input"
+            placeholder="输入操作员姓名"
+          />
+        </div>
+        <div className="flex gap-2">
           <button 
-            className="btn btn-primary w-full"
-            onClick={handleResetOdometry}
-            disabled={!isConnected}
+            className="btn btn-primary flex-1"
+            onClick={handleStartTask}
+            disabled={!isConnected || !operatorName}
           >
-            重置里程
+            开始任务
           </button>
           <button 
-            className="btn btn-secondary w-full"
-            onClick={handleTakeSnapshot}
-            disabled={!isConnected}
+            className="btn btn-danger flex-1"
+            onClick={handleEndTask}
+            disabled={!isConnected || !isTaskRunning}
           >
-            拍照
-          </button>
-          <button 
-            className="btn btn-danger w-full"
-            onClick={() => {
-              if (window.confirm('确定要重启系统吗？')) {
-                // 这里应该调用API重启系统，假设API为POST /api/system/reboot
-                // api.rebootSystem(ip, port).catch(err => console.error('重启系统失败:', err));
-                alert('系统重启指令已发送');
-              }
-            }}
-            disabled={!isConnected}
-          >
-            重启系统
+            结束任务
           </button>
         </div>
       </div>
       
-      {/* 关于 */}
-      <div className="card">
-        <h2 className="font-bold text-lg mb-2">关于</h2>
-        <div className="text-sm">
-          <p>管道智能巡检系统 v4.3</p>
-          <p className="mt-1">移动端应用 v1.0</p>
-          <p className="mt-1">© 2026 管道智能巡检系统</p>
-        </div>
+      {/* 传感器数据 */}
+      <div className="card mb-4">
+        <h2 className="font-bold text-lg mb-2">传感器数据</h2>
+        <button 
+          className="btn btn-primary mb-4"
+          onClick={() => {
+            if (!isConnected) return;
+            const deviceIp = ip || '10.42.0.1';
+            const devicePort = port || 6002;
+            api.getSensors(deviceIp, devicePort)
+              .then(data => {
+                alert(`距离: ${data.distance_cm || data.distance || 'N/A'} cm\n左红外状态: ${data.left_obstacle || 'N/A'}\n右红外状态: ${data.right_obstacle || 'N/A'}`);
+              })
+              .catch(error => {
+                console.error('获取传感器数据失败:', error);
+              });
+          }}
+          disabled={!isConnected}
+        >
+          获取传感器数据
+        </button>
       </div>
+      
+      {/* WiFi连接模态框 */}
+      {showWifiModal && selectedWifi && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3 className="font-bold text-lg mb-4">连接 WiFi: {selectedWifi.ssid}</h3>
+            <div className="mb-4">
+              <label className="block mb-2">密码:</label>
+              <input 
+                type="password" 
+                value={wifiPassword}
+                onChange={(e) => setWifiPassword(e.target.value)}
+                className="input"
+                placeholder="输入WiFi密码"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button 
+                className="btn btn-primary flex-1"
+                onClick={handleConnectWifi}
+              >
+                连接
+              </button>
+              <button 
+                className="btn btn-secondary flex-1"
+                onClick={() => {
+                  setShowWifiModal(false);
+                  setSelectedWifi(null);
+                  setWifiPassword('');
+                }}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
