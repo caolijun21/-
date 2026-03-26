@@ -145,7 +145,7 @@ const Home = () => {
 
   return (
     <div className="container pb-20">
-      <h1 className="text-xl font-bold mb-4">管道智能巡检系统</h1>
+      <h1 className="text-xl font-bold mb-4">云眸智行</h1>
       
       {/* 顶部布局：左方向控制，中间视频，右舵机控制 */}
       <div className="flex gap-4 mb-4">
