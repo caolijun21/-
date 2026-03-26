@@ -162,16 +162,135 @@ const Home = () => {
         
         {/* 左右控制布局 */}
         <div className="flex gap-4">
-          {/* 左侧舵机控制 */}
+          {/* 左侧方向控制（十字按钮） */}
           <div className="flex-1">
             <div className="card">
-              <h2 className="font-bold text-lg mb-2">舵机控制</h2>
+              <h2 className="font-bold text-lg mb-2 text-center">方向控制</h2>
+              <div className="direction-controls">
+                <div className="flex justify-center mb-2">
+                  <button 
+                    className="btn btn-primary direction-btn"
+                    onClick={() => {
+                      if (isConnected) {
+                        const deviceIp = ip || '10.42.0.1';
+                        const devicePort = port || 6002;
+                        api.move(deviceIp, devicePort, 'forward', speed);
+                      }
+                    }}
+                    disabled={!isConnected}
+                  >
+                    ↑
+                  </button>
+                </div>
+                <div className="flex justify-center gap-2 mb-2">
+                  <button 
+                    className="btn btn-primary direction-btn"
+                    onClick={() => {
+                      if (isConnected) {
+                        const deviceIp = ip || '10.42.0.1';
+                        const devicePort = port || 6002;
+                        api.move(deviceIp, devicePort, 'left', speed);
+                      }
+                    }}
+                    disabled={!isConnected}
+                  >
+                    ←
+                  </button>
+                  <button 
+                    className="btn btn-danger direction-btn"
+                    onClick={() => {
+                      if (isConnected) {
+                        const deviceIp = ip || '10.42.0.1';
+                        const devicePort = port || 6002;
+                        api.stop(deviceIp, devicePort);
+                      }
+                    }}
+                    disabled={!isConnected}
+                  >
+                    停
+                  </button>
+                  <button 
+                    className="btn btn-primary direction-btn"
+                    onClick={() => {
+                      if (isConnected) {
+                        const deviceIp = ip || '10.42.0.1';
+                        const devicePort = port || 6002;
+                        api.move(deviceIp, devicePort, 'right', speed);
+                      }
+                    }}
+                    disabled={!isConnected}
+                  >
+                    →
+                  </button>
+                </div>
+                <div className="flex justify-center mb-4">
+                  <button 
+                    className="btn btn-primary direction-btn"
+                    onClick={() => {
+                      if (isConnected) {
+                        const deviceIp = ip || '10.42.0.1';
+                        const devicePort = port || 6002;
+                        api.move(deviceIp, devicePort, 'backward', speed);
+                      }
+                    }}
+                    disabled={!isConnected}
+                  >
+                    ↓
+                  </button>
+                </div>
+                <div className="flex justify-center gap-4 mb-4">
+                  <button 
+                    className="btn btn-secondary direction-btn"
+                    onClick={() => {
+                      if (isConnected) {
+                        const deviceIp = ip || '10.42.0.1';
+                        const devicePort = port || 6002;
+                        api.move(deviceIp, devicePort, 'spin_left', speed);
+                      }
+                    }}
+                    disabled={!isConnected}
+                  >
+                    ↶
+                  </button>
+                  <button 
+                    className="btn btn-secondary direction-btn"
+                    onClick={() => {
+                      if (isConnected) {
+                        const deviceIp = ip || '10.42.0.1';
+                        const devicePort = port || 6002;
+                        api.move(deviceIp, devicePort, 'spin_right', speed);
+                      }
+                    }}
+                    disabled={!isConnected}
+                  >
+                    ↷
+                  </button>
+                </div>
+                <div className="mb-2">
+                  <label className="block mb-2 text-center">速度: {speed}%</label>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={speed} 
+                    onChange={(e) => setSpeed(parseInt(e.target.value))}
+                    className="input w-full"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* 右侧舵机控制（十字按钮） */}
+          <div className="flex-1">
+            <div className="card">
+              <h2 className="font-bold text-lg mb-2 text-center">舵机控制</h2>
               <div className="mb-4">
                 <label className="block mb-2">舵机编号:</label>
                 <select 
                   value={servoId} 
                   onChange={(e) => setServoId(parseInt(e.target.value))}
-                  className="input"
+                  className="input w-full"
                 >
                   <option value={1}>1</option>
                   <option value={2}>2</option>
@@ -179,32 +298,64 @@ const Home = () => {
                   <option value={4}>4</option>
                 </select>
               </div>
-              <div className="mb-4">
-                <label className="block mb-2">角度: {servoAngle}°</label>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="180" 
-                  value={servoAngle} 
-                  onChange={(e) => setServoAngle(parseInt(e.target.value))}
-                  className="input"
-                />
+              <div className="servo-controls">
+                <div className="flex justify-center mb-2">
+                  <button 
+                    className="btn btn-primary direction-btn"
+                    onClick={() => {
+                      setServoAngle(prev => Math.min(prev + 10, 180));
+                    }}
+                  >
+                    ↑
+                  </button>
+                </div>
+                <div className="flex justify-center gap-2 mb-2">
+                  <button 
+                    className="btn btn-primary direction-btn"
+                    onClick={() => {
+                      setServoAngle(prev => Math.max(prev - 10, 0));
+                    }}
+                  >
+                    ←
+                  </button>
+                  <button 
+                    className="btn btn-primary direction-btn"
+                    onClick={handleServoControl}
+                    disabled={!isConnected}
+                  >
+                    设置
+                  </button>
+                  <button 
+                    className="btn btn-primary direction-btn"
+                    onClick={() => {
+                      setServoAngle(prev => Math.min(prev + 10, 180));
+                    }}
+                  >
+                    →
+                  </button>
+                </div>
+                <div className="flex justify-center mb-4">
+                  <button 
+                    className="btn btn-primary direction-btn"
+                    onClick={() => {
+                      setServoAngle(prev => Math.max(prev - 10, 0));
+                    }}
+                  >
+                    ↓
+                  </button>
+                </div>
+                <div className="mb-2">
+                  <label className="block mb-2 text-center">角度: {servoAngle}°</label>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="180" 
+                    value={servoAngle} 
+                    onChange={(e) => setServoAngle(parseInt(e.target.value))}
+                    className="input w-full"
+                  />
+                </div>
               </div>
-              <button 
-                className="btn btn-primary"
-                onClick={handleServoControl}
-                disabled={!isConnected}
-              >
-                控制舵机
-              </button>
-            </div>
-          </div>
-          
-          {/* 右侧方向控制 */}
-          <div className="flex-1">
-            <div className="card home-joystick-card">
-              <h2 className="font-bold text-lg mb-2 text-center">方向控制</h2>
-              <Joystick speed={speed} onSpeedChange={setSpeed} />
             </div>
           </div>
         </div>

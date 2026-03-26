@@ -478,3 +478,73 @@ th {
     padding: 0.5rem;
   }
 }
+
+/* 方向控制和舵机控制按钮样式 */
+.direction-btn {
+  width: 60px;
+  height: 60px;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  margin: 0 5px;
+  background-color: #165DFF;
+  color: white;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.direction-btn:hover {
+  background-color: #0E42C4;
+}
+
+.direction-btn:disabled {
+  background-color: #A0B8E0;
+  cursor: not-allowed;
+}
+
+/* 方向控制区域 */
+.direction-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+}
+
+/* 舵机控制区域 */
+.servo-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+}
+
+/* 速度滑块样式 */
+input[type="range"] {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #ddd;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #165DFF;
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #165DFF;
+  cursor: pointer;
+  border: none;
+}
